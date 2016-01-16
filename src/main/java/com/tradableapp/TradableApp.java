@@ -144,12 +144,12 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 						orderArray.add(order);
 					}
 				}
-
+				
 				test.setText(String.valueOf(orderArray.size()));
 			}
 		});
 		
-		
+		// This is a test of SourceTree
 	
 	}
 
