@@ -27,6 +27,7 @@ import com.tradable.ui.workspace.state.PersistedStateHolder;
 import javax.swing.JLabel;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.JScrollPane;
 
 public class TradableApp extends JPanel implements WorkspaceModule {
 	
@@ -79,13 +80,19 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 			}
 		};
 		
+		JScrollPane scrollPane = new JScrollPane();
+		scrollPane.setBounds(10, 147, 380, 242);
+		add(scrollPane);
+		
 		table = new JTable(model);
+		scrollPane.setViewportView(table);
 		table.setRowSelectionAllowed(false);
 		
-		table.setBounds(10, 147, 380, 242);
-		add(table);
-		
-		// Quote Tick Subscription
+		/**
+		 *  
+		 * Quote Tick Subscription
+		 *  
+		**/
 		final QuoteTickSubscription quoteTickSubscription = tickService.createSubscription();
 		 
 		quoteTickSubscription.setListener(new QuoteTickListener() {
