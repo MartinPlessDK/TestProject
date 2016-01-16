@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.PreDestroy;
+import javax.swing.DefaultListModel;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 
@@ -34,40 +35,36 @@ import javax.swing.JTabbedPane;
 import javax.swing.JSeparator;
 import javax.swing.SwingConstants;
 import javax.swing.JScrollPane;
+import javax.swing.JList;
+import java.awt.Font;
+import javax.swing.JButton;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
 
 public class TradableApp extends JPanel implements WorkspaceModule {
 	
-	private static final String TITLE="Hello World";
+	private static final String TITLE = "Tradable App";
 	DefaultTableModel model;
+	private JTable table;
 	
 	@SuppressWarnings("serial")
 	public TradableApp(QuoteTickService tickService, final CurrentAccountService currentAccountService, final CurrentAccountAnalyticService currentAccountAnalyticService) {
 		setLayout(null);
-		setSize(399, 385);
+		setSize(399, 381);
 		putClientProperty(WorkspaceModuleProperties.COMPONENT_TITLE, TITLE);
 		putClientProperty(WorkspaceModuleProperties.COMPONENT_RESIZE_ENABLED, false);
 		
 		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
-		tabbedPane.setBounds(0, 3, 400, 322);
-		
-		
-		JLabel label = new JLabel("test");
-		JLabel label2 = new JLabel("test2");
+		tabbedPane.setBounds(0, 3, 400, 328);
 		
 		JScrollPane scrollPane = new JScrollPane();
 		tabbedPane.addTab("Overview", null, scrollPane, null);
-		tabbedPane.addTab("Bot", null, label, null);
-		tabbedPane.addTab("Log", null, label2, null);
-
 		add(tabbedPane);
 		
-		model = new DefaultTableModel(new Object[][] {
-		},
-		new String[] {
-			"ID", "Rate", "Status"
-		}) {
-		public boolean isCellEditable(int row, int column){return false;
-		}
+		model = new DefaultTableModel(new Object[][] {},new String[] {"ID", "Rate", "Status"}) {
+			public boolean isCellEditable(int row, int column){
+				return false;
+			}
 		};
 		
 		table = new JTable(model);
@@ -76,9 +73,32 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 		
 		RowSorter<TableModel> sorter = new TableRowSorter<TableModel>(model);
 	    table.setRowSorter(sorter);
+	    
+	    JPanel panel = new JPanel();
+	    tabbedPane.addTab("Bot", null, panel, null);
+	    panel.setLayout(null);
+	    
+	    JLabel lblNewLabel = new JLabel("DO SOME BOT STUFF HERE");
+	    lblNewLabel.setFont(new Font("Tahoma", Font.PLAIN, 24));
+	    lblNewLabel.setBounds(48, 11, 298, 69);
+	    panel.add(lblNewLabel);
+	    
+	    JPanel panel_1 = new JPanel();
+	    tabbedPane.addTab("Log", null, panel_1, null);
+	    panel_1.setLayout(null);
+	    
+	    JScrollPane scrollPane_1 = new JScrollPane();
+	    scrollPane_1.setBounds(10, 11, 375, 272);
+	    panel_1.add(scrollPane_1);
+	    
+	    final DefaultListModel listModel = new DefaultListModel();
+	    listModel.addElement("Test1");
+	    
+	    JList list = new JList(listModel);
+	    scrollPane_1.setViewportView(list);
 		
-		final JLabel test = new JLabel("New label");
-		test.setBounds(340, 352, 46, 14);
+		final JLabel test = new JLabel("<Orders>");
+		test.setBounds(289, 352, 98, 14);
 		add(test);
 		
 		// Titles
@@ -103,9 +123,13 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 		lblBalanceTitle.setBounds(178, 336, 79, 14);
 		add(lblBalanceTitle);
 		
-		final JLabel lblBalance = new JLabel("<BALANCE>");
+		final JLabel lblBalance = new JLabel("<Balance>");
 		lblBalance.setBounds(188, 352, 69, 14);
 		add(lblBalance);
+		
+		JLabel lblActiveOrders = new JLabel("Active Orders:");
+		lblActiveOrders.setBounds(274, 337, 108, 14);
+		add(lblActiveOrders);
 		
 		JSeparator separator = new JSeparator();
 		separator.setOrientation(SwingConstants.VERTICAL);
@@ -117,8 +141,23 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 		separator_1.setBounds(171, 337, 7, 37);
 		add(separator_1);
 		
+		JSeparator separator_2 = new JSeparator();
+		separator_2.setOrientation(SwingConstants.VERTICAL);
+		separator_2.setBounds(267, 337, 7, 37);
+		add(separator_2);
+		
+	    JButton btnNewButton = new JButton("DO STUFF");
+	    btnNewButton.addActionListener(new ActionListener() {
+	    	public void actionPerformed(ActionEvent e) {
+	    		listModel.addElement("Bot is doing stuff");
+	    	}
+	    });
+	    btnNewButton.setBounds(10, 69, 375, 103);
+	    panel.add(btnNewButton);
+		
+		
 		/**
-		 *  
+		 * 
 		 * Quote Tick Subscription
 		 *  
 		**/
@@ -133,7 +172,9 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 		                Quote bid = quoteTickSubscription.getBid(symbol);
 		                
 		                lblAsk.setText(String.valueOf(ask.getPrice()));
+		        	    listModel.addElement("Ask Was set to: " + ask.getPrice());
 		                lblBid.setText(String.valueOf(bid.getPrice()));
+		                listModel.addElement("Bid Was set to: " + ask.getPrice());
 		      
 		    }
 		  }
@@ -141,8 +182,11 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 		 
 		quoteTickSubscription.addSymbol("GBPUSD");
 		
-		// Account Metrics
-		
+		/**
+		 * 
+		 * Account Metrics
+		 * 
+		**/
 		currentAccountAnalyticService.addAccountAnalyticListener(new AccountAnalyticListener() {
 
 		    @PreDestroy
@@ -153,11 +197,15 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 			@Override
 			public void accountMetricsChanged(AccountMetricsUpdateEvent event) {
 				lblBalance.setText(String.valueOf(event.getAccountMetrics().getBalance()));
+				listModel.addElement("Balance has changed to: " + event.getAccountMetrics().getBalance());
 			}
 		});
 		
-		// Current Account Service
-		
+		/**
+		 * 
+		 * Current Account Service
+		 * 
+		**/
 		currentAccountService.addListener(new CurrentAccountServiceListener() {
 			
 			@Override
@@ -175,6 +223,7 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 				
 				for (Order order : orders) {
 					model.addRow(new Object[]{order.getOrderId(), order.getLimitPrice(), order.getStatus()});
+//					listModel.addElement("New Order with id: " + order.getOrderId() + " was added");
 					
 					if(order.getStatus() == OrderStatus.WORKING || order.getStatus() == OrderStatus.ACCEPTED || order.getStatus() == OrderStatus.NEW){
 						orderArray.add(order);
@@ -184,25 +233,13 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 				test.setText(String.valueOf(orderArray.size()));
 			}
 		});
-		
-		// This is a test of SourceTree
-	
 	}
 
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
-	private JTable table;
-
-	public static void main(String[] args){
-		
-	}
 	
 	@Override
 	public void destroy() {
 		// TODO Auto-generated method stub
-		
 	}
 
 	@Override
