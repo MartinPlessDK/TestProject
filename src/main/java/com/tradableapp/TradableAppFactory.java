@@ -1,10 +1,7 @@
 package com.tradableapp;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.tradable.api.entities.Account;
-import com.tradable.api.entities.AccountMetrics;
 import com.tradable.api.services.account.CurrentAccountService;
-import com.tradable.api.services.account.CurrentAccountServiceListener;
 import com.tradable.api.services.analytics.CurrentAccountAnalyticService;
 import com.tradable.api.services.marketdata.QuoteTickService;
 import com.tradable.ui.workspace.WorkspaceModule;
