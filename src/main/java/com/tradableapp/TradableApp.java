@@ -26,7 +26,13 @@ import com.tradable.ui.workspace.WorkspaceModuleProperties;
 import com.tradable.ui.workspace.state.PersistedStateHolder;
 import javax.swing.JLabel;
 import javax.swing.JTable;
+import javax.swing.RowSorter;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableModel;
+import javax.swing.table.TableRowSorter;
+import javax.swing.JTabbedPane;
+import javax.swing.JSeparator;
+import javax.swing.SwingConstants;
 import javax.swing.JScrollPane;
 
 public class TradableApp extends JPanel implements WorkspaceModule {
@@ -37,56 +43,79 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 	@SuppressWarnings("serial")
 	public TradableApp(QuoteTickService tickService, final CurrentAccountService currentAccountService, final CurrentAccountAnalyticService currentAccountAnalyticService) {
 		setLayout(null);
-		setSize(400, 400);
+		setSize(399, 385);
 		putClientProperty(WorkspaceModuleProperties.COMPONENT_TITLE, TITLE);
 		putClientProperty(WorkspaceModuleProperties.COMPONENT_RESIZE_ENABLED, false);
 		
-		// Values
-		final JLabel lblAsk = new JLabel("ASK");
-		lblAsk.setBounds(10, 25, 230, 24);
-		add(lblAsk);
+		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+		tabbedPane.setBounds(0, 3, 400, 322);
 		
-		final JLabel lblBid = new JLabel("BID");
-		lblBid.setBounds(10, 72, 230, 14);
-		add(lblBid);
 		
-		final JLabel lblBalance = new JLabel("BALANCE");
-		lblBalance.setBounds(10, 122, 230, 14);
-		add(lblBalance);
-		
-		// Titles
-		JLabel lblAskTitle = new JLabel("Ask:");
-		lblAskTitle.setBounds(10, 11, 230, 14);
-		add(lblAskTitle);
-		
-		JLabel lblBidTitle = new JLabel("Bid:");
-		lblBidTitle.setBounds(10, 53, 230, 14);
-		add(lblBidTitle);
-		
-		JLabel lblBalanceTitle = new JLabel("Balance:");
-		lblBalanceTitle.setBounds(10, 97, 230, 14);
-		add(lblBalanceTitle);
-		
-		final JLabel test = new JLabel("New label");
-		test.setBounds(344, 11, 46, 14);
-		add(test);
-		
-		model = new DefaultTableModel(new Object[][] {
-			},
-			new String[] {
-				"ID", "Rate", "Status"
-			}) {
-			public boolean isCellEditable(int row, int column){return false;
-			}
-		};
+		JLabel label = new JLabel("test");
+		JLabel label2 = new JLabel("test2");
 		
 		JScrollPane scrollPane = new JScrollPane();
-		scrollPane.setBounds(10, 147, 380, 242);
-		add(scrollPane);
+		tabbedPane.addTab("Overview", null, scrollPane, null);
+		tabbedPane.addTab("Bot", null, label, null);
+		tabbedPane.addTab("Log", null, label2, null);
+
+		add(tabbedPane);
+		
+		model = new DefaultTableModel(new Object[][] {
+		},
+		new String[] {
+			"ID", "Rate", "Status"
+		}) {
+		public boolean isCellEditable(int row, int column){return false;
+		}
+		};
 		
 		table = new JTable(model);
 		scrollPane.setViewportView(table);
 		table.setRowSelectionAllowed(false);
+		
+		RowSorter<TableModel> sorter = new TableRowSorter<TableModel>(model);
+	    table.setRowSorter(sorter);
+		
+		final JLabel test = new JLabel("New label");
+		test.setBounds(340, 352, 46, 14);
+		add(test);
+		
+		// Titles
+		JLabel lblAskTitle = new JLabel("Ask:");
+		lblAskTitle.setBounds(10, 337, 70, 14);
+		add(lblAskTitle);
+		
+		// Values
+		final JLabel lblAsk = new JLabel("<Ask>");
+		lblAsk.setBounds(20, 352, 60, 14);
+		add(lblAsk);
+		
+		JLabel lblBidTitle = new JLabel("Bid:");
+		lblBidTitle.setBounds(91, 337, 70, 14);
+		add(lblBidTitle);
+		
+		final JLabel lblBid = new JLabel("<Bid>");
+		lblBid.setBounds(101, 352, 60, 14);
+		add(lblBid);
+		
+		JLabel lblBalanceTitle = new JLabel("Balance:");
+		lblBalanceTitle.setBounds(178, 336, 79, 14);
+		add(lblBalanceTitle);
+		
+		final JLabel lblBalance = new JLabel("<BALANCE>");
+		lblBalance.setBounds(188, 352, 69, 14);
+		add(lblBalance);
+		
+		JSeparator separator = new JSeparator();
+		separator.setOrientation(SwingConstants.VERTICAL);
+		separator.setBounds(85, 337, 7, 37);
+		add(separator);
+		
+		JSeparator separator_1 = new JSeparator();
+		separator_1.setOrientation(SwingConstants.VERTICAL);
+		separator_1.setBounds(171, 337, 7, 37);
+		add(separator_1);
 		
 		/**
 		 *  
