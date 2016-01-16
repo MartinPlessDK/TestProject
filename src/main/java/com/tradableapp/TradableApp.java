@@ -1,5 +1,7 @@
 package com.tradableapp;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -8,14 +10,27 @@ import javax.swing.JComponent;
 import javax.swing.JPanel;
 
 import com.tradable.api.entities.Account;
+import com.tradable.api.entities.Instrument;
 import com.tradable.api.entities.Order;
+import com.tradable.api.entities.OrderDuration;
+import com.tradable.api.entities.OrderSide;
 import com.tradable.api.entities.OrderStatus;
+import com.tradable.api.entities.OrderType;
 import com.tradable.api.services.account.AccountUpdateEvent;
 import com.tradable.api.services.account.CurrentAccountService;
 import com.tradable.api.services.account.CurrentAccountServiceListener;
 import com.tradable.api.services.analytics.AccountAnalyticListener;
 import com.tradable.api.services.analytics.AccountMetricsUpdateEvent;
 import com.tradable.api.services.analytics.CurrentAccountAnalyticService;
+import com.tradable.api.services.executor.OrderActionRequest;
+import com.tradable.api.services.executor.OrderActionResponse;
+import com.tradable.api.services.executor.OrderActionResult;
+import com.tradable.api.services.executor.PlaceOrderAction;
+import com.tradable.api.services.executor.PlaceOrderActionBuilder;
+import com.tradable.api.services.executor.TradingRequest;
+import com.tradable.api.services.executor.TradingRequestListener;
+import com.tradable.api.services.executor.TradingResponse;
+import com.tradable.api.services.instrument.InstrumentService;
 import com.tradable.api.services.marketdata.Quote;
 import com.tradable.api.services.marketdata.QuoteTickEvent;
 import com.tradable.api.services.marketdata.QuoteTickListener;
@@ -24,10 +39,12 @@ import com.tradable.api.services.marketdata.QuoteTickSubscription;
 import com.tradable.ui.workspace.WorkspaceModule;
 import com.tradable.ui.workspace.WorkspaceModuleProperties;
 import com.tradable.ui.workspace.state.PersistedStateHolder;
+
 import javax.swing.JLabel;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.JScrollPane;
+import javax.swing.JButton;
 
 public class TradableApp extends JPanel implements WorkspaceModule {
 	
@@ -35,7 +52,8 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 	DefaultTableModel model;
 	
 	@SuppressWarnings("serial")
-	public TradableApp(QuoteTickService tickService, final CurrentAccountService currentAccountService, final CurrentAccountAnalyticService currentAccountAnalyticService) {
+	public TradableApp(QuoteTickService tickService, final CurrentAccountService currentAccountService, final CurrentAccountAnalyticService currentAccountAnalyticService, final InstrumentService instrument, 
+					   final TradingRequestExecutorController requestExecutor) {
 		setLayout(null);
 		setSize(400, 400);
 		putClientProperty(WorkspaceModuleProperties.COMPONENT_TITLE, TITLE);
@@ -88,6 +106,10 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 		scrollPane.setViewportView(table);
 		table.setRowSelectionAllowed(false);
 		
+		JButton btnSetOrder = new JButton("Set order");
+		btnSetOrder.setBounds(301, 36, 89, 23);
+		add(btnSetOrder);
+		
 		/**
 		 *  
 		 * Quote Tick Subscription
@@ -125,6 +147,64 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 			public void accountMetricsChanged(AccountMetricsUpdateEvent event) {
 				lblBalance.setText(String.valueOf(event.getAccountMetrics().getBalance()));
 			}
+		});
+		
+		/**
+		 *  
+		 * Order on button click
+		 *  
+		**/
+		
+		btnSetOrder.addActionListener( new ActionListener() {
+		
+		@Override
+		public void actionPerformed(ActionEvent e) {
+		
+		Instrument tradingPair = instrument.getInstrument("GBP/USD");
+		
+		PlaceOrderActionBuilder builder = new PlaceOrderActionBuilder();
+		builder.setInstrument(tradingPair);
+		builder.setOrderSide(OrderSide.BUY);
+		builder.setDuration(OrderDuration.GTC);
+		builder.setLimitPrice(1.09287);
+		
+		builder.setOrderType(OrderType.LIMIT);
+		builder.setQuantity(1000.0);
+		
+		PlaceOrderAction action = builder.build();
+		
+		int currentOrderId = 0;
+		int clientOrderId = ++currentOrderId;
+		int currentAccountId = currentAccountService.getCurrentAccount().getAccountId();
+		
+		OrderActionRequest request = new OrderActionRequest(clientOrderId, currentAccountId, action);
+		
+		((com.tradable.api.services.executor.TradingRequestExecutor) requestExecutor).execute(request, new TradingRequestListener() {
+
+			@Override
+			public void requestExecuted(
+					com.tradable.api.services.executor.TradingRequestExecutor executor,
+					TradingRequest request, TradingResponse response) {
+				
+					if (response instanceof OrderActionResponse) {
+						OrderActionResponse orderResponse = (OrderActionResponse) response;
+					
+					
+					if (orderResponse.isSuccess()) {
+						for(OrderActionResult result : orderResponse.getResults()) {
+							if(result.isSuccess()) {
+								// Order is processed
+							}else {
+								// Order is rejected
+							}
+						}
+					}else {
+						// Order failed to submit
+					}
+				}	
+			}
+		});
+		}
 		});
 		
 		// Current Account Service

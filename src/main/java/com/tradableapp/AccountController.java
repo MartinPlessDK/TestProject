@@ -9,7 +9,7 @@ import com.tradable.api.services.analytics.AccountAnalyticListener;
 import com.tradable.api.services.analytics.AccountMetricsUpdateEvent;
 import com.tradable.api.services.analytics.CurrentAccountAnalyticService;
 
-public class AccountController implements AccountAnalyticListener{
+public class AccountController implements AccountAnalyticListener {
 
 	@Autowired
 	private CurrentAccountAnalyticService service;
@@ -29,6 +29,4 @@ public class AccountController implements AccountAnalyticListener{
 		System.out.println("Account metrics changed " + event);
 	}
 	
-	
-
 }
