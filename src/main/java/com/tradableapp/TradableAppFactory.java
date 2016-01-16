@@ -8,6 +8,8 @@ import com.tradable.ui.workspace.WorkspaceModule;
 import com.tradable.ui.workspace.WorkspaceModuleCategory;
 import com.tradable.ui.workspace.WorkspaceModuleFactory;
 
+//This is a test
+
 public class TradableAppFactory implements WorkspaceModuleFactory {
 
 	@Autowired
