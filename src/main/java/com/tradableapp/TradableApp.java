@@ -301,7 +301,7 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 	    		}
 	    		
 	    	} catch(Exception e1){
-	    		
+	    		//test
 	    		JOptionPane.showMessageDialog(null, e1.getMessage().toString());
 	    		
 	    		listModel.addElement(e1.getMessage().toString());
