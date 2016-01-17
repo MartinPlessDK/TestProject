@@ -49,15 +49,20 @@ import com.tradable.ui.workspace.state.PersistedStateHolder;
 
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.JTable;
 import javax.swing.RowSorter;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
+
+import org.springframework.util.AlternativeJdkIdGenerator;
+
 import javax.swing.JTabbedPane;
 import javax.swing.JSeparator;
 import javax.swing.SwingConstants;
 import javax.swing.JScrollPane;
+import javax.swing.JCheckBox;
 
 public class TradableApp extends JPanel implements WorkspaceModule {
 	
@@ -68,6 +73,8 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 	final CurrentAccountService _currentAccountService;
 	final TradingRequestExecutor _tradingRequestExecutor;
 	final DefaultListModel listModel;
+	Quote bid;
+	Quote ask;
 	
 	@SuppressWarnings("serial")
 	public TradableApp(QuoteTickService tickService, final CurrentAccountService currentAccountService, final CurrentAccountAnalyticService currentAccountAnalyticService, final InstrumentService instrument, 
@@ -185,6 +192,10 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 	    JButton btnSetOrder = new JButton("Set order");
 	    btnSetOrder.setBounds(153, 183, 89, 23);
 	    panel.add(btnSetOrder);
+	    
+	    final JCheckBox chckbxInital = new JCheckBox("Inital");
+	    chckbxInital.setBounds(163, 213, 97, 23);
+	    panel.add(chckbxInital);
 		
 		/**
 		 * 
@@ -198,13 +209,17 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 		  @Override
 		  public void quotesUpdated(QuoteTickEvent event) {
 		    for (String symbol : event.getSymbols()) {
-		                Quote ask = quoteTickSubscription.getAsk(symbol);
-		                Quote bid = quoteTickSubscription.getBid(symbol);
+		    	try{
+		                ask = quoteTickSubscription.getAsk(symbol);
+		                bid = quoteTickSubscription.getBid(symbol);
 		                
 		                lblAsk.setText(String.valueOf(ask.getPrice()));
 		        	    listModel.addElement("Ask Was set to: " + ask.getPrice());
 		                lblBid.setText(String.valueOf(bid.getPrice()));
 		                listModel.addElement("Bid Was set to: " + bid.getPrice());
+		    	} catch(Exception e){
+		    		JOptionPane.showMessageDialog(null, e.getMessage().toString());
+		    	}
 		      
 		    }
 		  }
@@ -272,15 +287,27 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 	    @Override
 	    public void actionPerformed(ActionEvent e) {
 	    	try{
+
+	    		if(chckbxInital.isSelected()){
+	    			
+	    			listModel.addElement("Far kommer her!");
+	    			
+	    			startInitialOrder();
+	    		} else{
+	    			
+	    			JOptionPane.showMessageDialog(null, "Initial is only possible at this moments.");
+	    	    	
+		    		listModel.addElement("Initial is only possible at this moments.");
+	    		}
 	    		
-	    		addNewOrder();
-	    	
 	    	} catch(Exception e1){
+	    		//test
+	    		JOptionPane.showMessageDialog(null, e1.getMessage().toString());
+	    		
 	    		listModel.addElement(e1.getMessage().toString());
 	    	}
 	    }
 	    });
-		
 	}
 
 	private static final long serialVersionUID = 1L;
@@ -290,14 +317,26 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 	    return new SimpleDateFormat("yyyy/MM/dd").format(date);
 	}
 	
-	private void addNewOrder(){
+	private void startInitialOrder(){
+		try{
+		listModel.addElement("TEST:");
+		
+			addNewOrder(OrderSide.BUY, bid.getPrice());
+			addNewOrder(OrderSide.SELL, ask.getPrice());
+		} catch(Exception e){
+			JOptionPane.showMessageDialog(null, e.getMessage().toString());
+		}
+	}
+	
+	private void addNewOrder(OrderSide orderSide, Double limitPrice){
+
 		try{
 	    Instrument tradingPair = _instrument.getInstrument("GBPUSD");
 	    PlaceOrderActionBuilder builder = new PlaceOrderActionBuilder();
 	    builder.setInstrument(tradingPair);
-	    builder.setOrderSide(OrderSide.BUY);
+	    builder.setOrderSide(orderSide);
+	    builder.setLimitPrice(limitPrice);
 	    builder.setDuration(OrderDuration.DAY);
-	    builder.setLimitPrice(1.42293);
 	    builder.setStopLossDistance(0.04000);
 	    builder.setTakeProfitDistance(0.00500);
 	    
@@ -325,10 +364,15 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 	                if (orderResponse.isSuccess()) {
 	                    for(OrderActionResult result : orderResponse.getResults()) {
 	                        if(result.isSuccess()) {
+	                        	JOptionPane.showMessageDialog(null, "Order Was Successful!");
 	                        	listModel.addElement("Order Was Successful!");
 	                        }else {
+	                        	JOptionPane.showMessageDialog(null, "Order Was Rejected! \n\n" + result.getCause());
 	                        	listModel.addElement("Order Was Rejected!");
-	                        	listModel.addElement(result.getCause());
+	                        	
+	                        	
+	                        	
+//	                        	listModel.addElement(result.getCause());
 	                        }
 	                    }
 	                }else {
