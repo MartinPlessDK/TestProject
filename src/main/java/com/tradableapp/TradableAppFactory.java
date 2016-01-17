@@ -3,6 +3,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.tradable.api.services.account.CurrentAccountService;
 import com.tradable.api.services.analytics.CurrentAccountAnalyticService;
+import com.tradable.api.services.executor.TradingRequestExecutor;
 import com.tradable.api.services.instrument.InstrumentService;
 import com.tradable.api.services.marketdata.QuoteTickService;
 import com.tradable.ui.workspace.WorkspaceModule;
@@ -19,10 +20,10 @@ public class TradableAppFactory implements WorkspaceModuleFactory {
 	protected CurrentAccountService currentAccountService;
 	@Autowired
 	protected CurrentAccountAnalyticService currentAccountAnalyticService;
-	
+	@Autowired
 	protected InstrumentService instrument;
-	
-	protected TradingRequestExecutorController requestExecutor;
+	@Autowired
+	protected TradingRequestExecutor requestExecutor;
 	
 	@Override
 	public WorkspaceModule createModule() {
