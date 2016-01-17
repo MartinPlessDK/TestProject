@@ -1,12 +1,17 @@
 package com.tradableapp;
 
+import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.sql.Date;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.PreDestroy;
 import javax.swing.DefaultListModel;
+import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 
@@ -29,6 +34,7 @@ import com.tradable.api.services.executor.OrderActionResult;
 import com.tradable.api.services.executor.PlaceOrderAction;
 import com.tradable.api.services.executor.PlaceOrderActionBuilder;
 import com.tradable.api.services.executor.TradingRequest;
+import com.tradable.api.services.executor.TradingRequestExecutor;
 import com.tradable.api.services.executor.TradingRequestListener;
 import com.tradable.api.services.executor.TradingResponse;
 import com.tradable.api.services.instrument.InstrumentService;
@@ -42,6 +48,7 @@ import com.tradable.ui.workspace.WorkspaceModuleProperties;
 import com.tradable.ui.workspace.state.PersistedStateHolder;
 
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JTable;
 import javax.swing.RowSorter;
 import javax.swing.table.DefaultTableModel;
@@ -57,14 +64,22 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 	private static final String TITLE = "Tradable App";
 	DefaultTableModel model;
 	private JTable table;
+	final InstrumentService _instrument;
+	final CurrentAccountService _currentAccountService;
+	final TradingRequestExecutor _tradingRequestExecutor;
+	final DefaultListModel listModel;
 	
 	@SuppressWarnings("serial")
 	public TradableApp(QuoteTickService tickService, final CurrentAccountService currentAccountService, final CurrentAccountAnalyticService currentAccountAnalyticService, final InstrumentService instrument, 
-					   final TradingRequestExecutorController requestExecutor) {
+					   final TradingRequestExecutor requestExecutor) {
 		setLayout(null);
 		setSize(399, 381);
 		putClientProperty(WorkspaceModuleProperties.COMPONENT_TITLE, TITLE);
 		putClientProperty(WorkspaceModuleProperties.COMPONENT_RESIZE_ENABLED, false);
+		
+		_instrument = instrument;
+		_currentAccountService = currentAccountService;
+		_tradingRequestExecutor = requestExecutor;
 		
 		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
 		tabbedPane.setBounds(0, 3, 400, 328);
@@ -73,7 +88,7 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 		tabbedPane.addTab("Overview", null, scrollPane, null);
 		add(tabbedPane);
 		
-		model = new DefaultTableModel(new Object[][] {},new String[] {"ID", "Rate", "Status"}) {
+		model = new DefaultTableModel(new Object[][] {},new String[] {"Date", "Rate", "Status", "Stop Loss", "Take Profit"}) {
 			public boolean isCellEditable(int row, int column){
 				return false;
 			}
@@ -103,7 +118,7 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 	    scrollPane_1.setBounds(10, 11, 375, 272);
 	    panel_1.add(scrollPane_1);
 	    
-	    final DefaultListModel listModel = new DefaultListModel();
+	    listModel = new DefaultListModel();
 	    listModel.addElement("Test1");
 	    
 	    JList list = new JList(listModel);
@@ -166,11 +181,10 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 	    });
 	    btnNewButton.setBounds(10, 69, 375, 103);
 	    panel.add(btnNewButton);
-		
-		
-		JButton btnSetOrder = new JButton("Set order");
-		btnSetOrder.setBounds(301, 36, 89, 23);
-		add(btnSetOrder);
+	    
+	    JButton btnSetOrder = new JButton("Set order");
+	    btnSetOrder.setBounds(153, 183, 89, 23);
+	    panel.add(btnSetOrder);
 		
 		/**
 		 * 
@@ -190,7 +204,7 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 		                lblAsk.setText(String.valueOf(ask.getPrice()));
 		        	    listModel.addElement("Ask Was set to: " + ask.getPrice());
 		                lblBid.setText(String.valueOf(bid.getPrice()));
-		                listModel.addElement("Bid Was set to: " + ask.getPrice());
+		                listModel.addElement("Bid Was set to: " + bid.getPrice());
 		      
 		    }
 		  }
@@ -235,7 +249,7 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 				}
 				
 				for (Order order : orders) {
-					model.addRow(new Object[]{order.getOrderId(), order.getLimitPrice(), order.getStatus()});
+					model.addRow(new Object[]{new Timestamp(order.getIssueTime()), order.getLimitPrice(), order.getStatus(), order.getStopLossDistance(), order.getTakeProfitDistance()});
 //					listModel.addElement("New Order with id: " + order.getOrderId() + " was added");
 					
 					if(order.getStatus() == OrderStatus.WORKING || order.getStatus() == OrderStatus.ACCEPTED || order.getStatus() == OrderStatus.NEW){
@@ -246,9 +260,87 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 				test.setText(String.valueOf(orderArray.size()));
 			}
 		});
+		
+        /**
+         *  
+         * Order on button click
+         *  
+        **/
+        
+	    btnSetOrder.addActionListener( new ActionListener() {
+		    
+	    @Override
+	    public void actionPerformed(ActionEvent e) {
+	    	try{
+	    		
+	    		addNewOrder();
+	    	
+	    	} catch(Exception e1){
+	    		listModel.addElement(e1.getMessage().toString());
+	    	}
+	    }
+	    });
+		
 	}
 
 	private static final long serialVersionUID = 1L;
+	
+	private String toDate(long timestamp) {
+	    Date date = new Date (timestamp * 1000);
+	    return new SimpleDateFormat("yyyy/MM/dd").format(date);
+	}
+	
+	private void addNewOrder(){
+		try{
+	    Instrument tradingPair = _instrument.getInstrument("GBPUSD");
+	    PlaceOrderActionBuilder builder = new PlaceOrderActionBuilder();
+	    builder.setInstrument(tradingPair);
+	    builder.setOrderSide(OrderSide.BUY);
+	    builder.setDuration(OrderDuration.DAY);
+	    builder.setLimitPrice(1.42293);
+	    builder.setStopLossDistance(0.04000);
+	    builder.setTakeProfitDistance(0.00500);
+	    
+	    builder.setOrderType(OrderType.LIMIT);
+	    builder.setQuantity(1000.0);
+	    
+	    PlaceOrderAction action = builder.build();
+	    
+	    int currentOrderId = 0;
+	    int clientOrderId = ++currentOrderId;
+	    int currentAccountId = _currentAccountService.getCurrentAccount().getAccountId();
+	    
+	    OrderActionRequest request = new OrderActionRequest(clientOrderId, currentAccountId, action);
+	    
+	    _tradingRequestExecutor.execute(request, new TradingRequestListener() {
+
+	        @Override
+	        public void requestExecuted(
+	                com.tradable.api.services.executor.TradingRequestExecutor executor,
+	                TradingRequest request, TradingResponse response) {
+	        	
+	                if (response instanceof OrderActionResponse) {
+	                    OrderActionResponse orderResponse = (OrderActionResponse) response;
+	                
+	                if (orderResponse.isSuccess()) {
+	                    for(OrderActionResult result : orderResponse.getResults()) {
+	                        if(result.isSuccess()) {
+	                        	listModel.addElement("Order Was Successful!");
+	                        }else {
+	                        	listModel.addElement("Order Was Rejected!");
+	                        	listModel.addElement(result.getCause());
+	                        }
+	                    }
+	                }else {
+	                	listModel.addElement("Fail!");
+	                }
+	            }    
+	        }
+	    });
+		} catch(Exception e){
+			throw e;
+		}
+	}
 	
 	@Override
 	public void destroy() {
