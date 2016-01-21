@@ -369,9 +369,6 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 	                        }else {
 	                        	JOptionPane.showMessageDialog(null, "Order Was Rejected! \n\n" + result.getCause());
 	                        	listModel.addElement("Order Was Rejected!");
-	                        	
-	                        	
-	                        	
 //	                        	listModel.addElement(result.getCause());
 	                        }
 	                    }
