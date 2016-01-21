@@ -1,8 +1,11 @@
 package com.tradableapp;
 
 import java.awt.Font;
+import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
@@ -22,12 +25,16 @@ import com.tradable.api.entities.OrderDuration;
 import com.tradable.api.entities.OrderSide;
 import com.tradable.api.entities.OrderStatus;
 import com.tradable.api.entities.OrderType;
+import com.tradable.api.entities.Position;
 import com.tradable.api.services.account.AccountUpdateEvent;
 import com.tradable.api.services.account.CurrentAccountService;
 import com.tradable.api.services.account.CurrentAccountServiceListener;
 import com.tradable.api.services.analytics.AccountAnalyticListener;
 import com.tradable.api.services.analytics.AccountMetricsUpdateEvent;
 import com.tradable.api.services.analytics.CurrentAccountAnalyticService;
+import com.tradable.api.services.executor.IssueOrderAction;
+import com.tradable.api.services.executor.ModifyOrderAction;
+import com.tradable.api.services.executor.ModifyOrderActionBuilder;
 import com.tradable.api.services.executor.OrderActionRequest;
 import com.tradable.api.services.executor.OrderActionResponse;
 import com.tradable.api.services.executor.OrderActionResult;
@@ -75,10 +82,12 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 	final DefaultListModel listModel;
 	Quote bid;
 	Quote ask;
+	Order modifyOrder;
 	
 	@SuppressWarnings("serial")
 	public TradableApp(QuoteTickService tickService, final CurrentAccountService currentAccountService, final CurrentAccountAnalyticService currentAccountAnalyticService, final InstrumentService instrument, 
 					   final TradingRequestExecutor requestExecutor) {
+		
 		setLayout(null);
 		setSize(399, 381);
 		putClientProperty(WorkspaceModuleProperties.COMPONENT_TITLE, TITLE);
@@ -107,6 +116,17 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 		
 		RowSorter<TableModel> sorter = new TableRowSorter<TableModel>(model);
 	    table.setRowSorter(sorter);
+	    
+	    table.addMouseListener(new MouseAdapter() {
+	        public void mousePressed(MouseEvent me) {
+	            JTable table =(JTable) me.getSource();
+	            Point p = me.getPoint();
+	            int row = table.rowAtPoint(p);
+	            if (me.getClickCount() == 2) {
+	                listModel.addElement(row);
+	            }
+	        }
+	    });
 	    
 	    JPanel panel = new JPanel();
 	    tabbedPane.addTab("Bot", null, panel, null);
@@ -196,6 +216,15 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 	    final JCheckBox chckbxInital = new JCheckBox("Inital");
 	    chckbxInital.setBounds(163, 213, 97, 23);
 	    panel.add(chckbxInital);
+	    
+	    JButton btnWoopie = new JButton("woopie");
+	    btnWoopie.addActionListener(new ActionListener() {
+	    	public void actionPerformed(ActionEvent e) {
+	    		modifyOrder(modifyOrder);
+	    	}
+	    });
+	    btnWoopie.setBounds(10, 266, 89, 23);
+	    panel.add(btnWoopie);
 		
 		/**
 		 * 
@@ -214,9 +243,9 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 		                bid = quoteTickSubscription.getBid(symbol);
 		                
 		                lblAsk.setText(String.valueOf(ask.getPrice()));
-		        	    listModel.addElement("Ask Was set to: " + ask.getPrice());
+//		        	    listModel.addElement("Ask Was set to: " + ask.getPrice());
 		                lblBid.setText(String.valueOf(bid.getPrice()));
-		                listModel.addElement("Bid Was set to: " + bid.getPrice());
+//		                listModel.addElement("Bid Was set to: " + bid.getPrice());
 		    	} catch(Exception e){
 		    		JOptionPane.showMessageDialog(null, e.getMessage().toString());
 		    	}
@@ -242,7 +271,7 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 			@Override
 			public void accountMetricsChanged(AccountMetricsUpdateEvent event) {
 				lblBalance.setText(String.valueOf(event.getAccountMetrics().getBalance()));
-				listModel.addElement("Balance has changed to: " + event.getAccountMetrics().getBalance());
+//				listModel.addElement("Balance has changed to: " + event.getAccountMetrics().getBalance());
 			}
 		});
 		
@@ -255,6 +284,20 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 				Account account = currentAccountService.getCurrentAccount();
 				
 				List<Order> orders = account.getOrders();
+				List<Position> positions = account.getPositions();
+				
+				for (Position position : positions) {
+					List<Order> ordersa = position.getAttachedOrders();
+					for (Order order : ordersa){
+						listModel.addElement(order);
+//						listModel.addElement(order.getStopPrice());
+					}
+					
+					listModel.addElement(position);
+				}
+				
+				modifyOrder = orders.get(5);
+				
 				ArrayList<Order> orderArray = new ArrayList<Order>();
 				
 				if (model.getRowCount() > 0) {
@@ -288,16 +331,13 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 	    public void actionPerformed(ActionEvent e) {
 	    	try{
 
-	    		if(chckbxInital.isSelected()){
-	    			
-	    			listModel.addElement("Far kommer her!");
-	    			
+	    		if(chckbxInital.isSelected()){ 			
 	    			startInitialOrder();
 	    		} else{
 	    			
 	    			JOptionPane.showMessageDialog(null, "Initial is only possible at this moments.");
 	    	    	
-		    		listModel.addElement("Initial is only possible at this moments.");
+//		    		listModel.addElement("Initial is only possible at this moments.");
 	    		}
 	    		
 	    	} catch(Exception e1){
@@ -328,6 +368,25 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 		}
 	}
 	
+	private void modifyOrder(Order order){
+		try{
+			
+			ModifyOrderActionBuilder builder = new ModifyOrderActionBuilder();
+			builder.setOrder(order);
+			
+			listModel.addElement(builder.getOrder().getLimitPrice());
+			
+			builder.setStopLossDistance(0.01000);
+			builder.setLimitPrice(4000.0);
+			ModifyOrderAction action = builder.build();
+			
+		    executeRequest(order.getOrderId(), order.getAccountId(), action);
+			
+		} catch(Exception e){
+			JOptionPane.showMessageDialog(null, e.getMessage().toString());
+		}
+	}
+	
 	private void addNewOrder(OrderSide orderSide, Double limitPrice){
 
 		try{
@@ -348,7 +407,15 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 	    int currentOrderId = 0;
 	    int clientOrderId = ++currentOrderId;
 	    int currentAccountId = _currentAccountService.getCurrentAccount().getAccountId();
+
+	    executeRequest(clientOrderId, currentAccountId, action);
 	    
+		} catch(Exception e){
+			throw e;
+		}
+	}
+	
+	private void executeRequest(int clientOrderId, int currentAccountId, IssueOrderAction action){
 	    OrderActionRequest request = new OrderActionRequest(clientOrderId, currentAccountId, action);
 	    
 	    _tradingRequestExecutor.execute(request, new TradingRequestListener() {
@@ -370,6 +437,7 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 	                        	JOptionPane.showMessageDialog(null, "Order Was Rejected! \n\n" + result.getCause());
 	                        	listModel.addElement("Order Was Rejected!");
 //	                        	listModel.addElement(result.getCause());
+	                        	
 	                        }
 	                    }
 	                }else {
@@ -378,9 +446,6 @@ public class TradableApp extends JPanel implements WorkspaceModule {
 	            }    
 	        }
 	    });
-		} catch(Exception e){
-			throw e;
-		}
 	}
 	
 	@Override
